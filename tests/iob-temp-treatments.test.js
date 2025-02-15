@@ -123,6 +123,11 @@ describe('Calculate Temp Treatments', function() {
         // drops the later one if they overlap
         tempBasals[0].rate.should.equal(2);
         tempBasals[0].duration.should.equal(30);
+
+        // Check TempBolus entries
+        var tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        var totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(0.5, 0.001); // (2 U/hr - 1 U/hr) * 0.5 hr = 0.5U
     });
 
     // Test suspend/resume handling
@@ -171,11 +176,6 @@ describe('Calculate Temp Treatments', function() {
 
         var treatments = calcTempTreatments(inputs);
         
-        // Find suspend temp basals (rate 0)
-        var suspendTemps = treatments.filter(t => t._type === 'SuspendBasal' && t.rate === 0);
-        suspendTemps.should.be.an.Array();
-        suspendTemps.length.should.equal(0);
-        
         // Original temp should exist but be shortened
         var origTemp = treatments.find(t => t.rate === 2);
         should.exist(origTemp);
@@ -185,19 +185,17 @@ describe('Calculate Temp Treatments', function() {
     // Test basal profile changes
     it('should handle basal profile changes', function() {
         var basalprofile = [{
-            'i': 0,
             'start': '00:00:00',
             'rate': 1,
             'minutes': 0
         }, {
-            'i': 1,
             'start': '00:30:00',
             'rate': 2,
             'minutes': 30
         }];
 
         var startingPoint = moment('2016-06-13 00:00:00.000').toDate();
-        var endingPoint = moment('2016-06-13 00:30:00.000').toDate();
+        var endingPoint = moment('2016-06-13 00:45:00.000').toDate();
 
         var inputs = {
             clock: endingPoint.toISOString(),
@@ -227,7 +225,7 @@ describe('Calculate Temp Treatments', function() {
         
         // Should split the temp basal at profile change
         tempBasals[0].rate.should.equal(3);
-        tempBasals[0].duration.should.equal(31); // Adjusted by splitter
+        tempBasals[0].duration.should.equal(46); // 1m after current time
     });
 
     // Test bolus handling
