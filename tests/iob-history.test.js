@@ -162,6 +162,13 @@ describe('Calculate Temp Treatments', function() {
         const origTemp = treatments.find(t => t.rate === 2);
         should.exist(origTemp);
         origTemp.duration.should.equal(15);
+
+        // 15m at 2U/h - 1U/h -> 0.25U
+        // 15m at 0U/h - 1U/h -> -0.25U
+        // Total: 0
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(0.0, 0.01);
     });
 
     it('should handle basal profile changes', function() {
@@ -207,6 +214,13 @@ describe('Calculate Temp Treatments', function() {
 
         // Should have rate of 3
         tempBasals[0].rate.should.equal(3);
+
+        // 30m at 3 U/h - 1 U/h -> 1U
+        // 15m at 3 U/h - 2 U/h - 0.25U
+        // 1.25U total
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(1.25, 0.01);
     });
 
     it('should properly record boluses', function() {
@@ -282,6 +296,13 @@ describe('Calculate Temp Treatments', function() {
         // Verify zero temp starts 1 min in future
         const expectedStart = new Date(now.getTime() + (60 * 1000)); // 1 minute in future
         zeroTemps[0].date.should.equal(expectedStart.getTime());
+
+        // 30m at 2U/h - 1U/h -> 0.5
+        // 120m at 0U/h - 1U/h -> -2.0
+        // Total -> -1.5U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(-1.5, 0.01);
     });
 
     it('should handle zero temp with basal profile changes', function() {
@@ -335,6 +356,13 @@ describe('Calculate Temp Treatments', function() {
 
         const expectedStart = new Date(startingPoint.getTime() + (61 * 60 * 1000)); // 61 minutes in future
         new Date(zeroTemps[0].date).getTime().should.equal(expectedStart.getTime());
+
+        // 30m at 3U/h - 1U/h -> 1U
+        // 30m at 3U/h - 2U/h -> 0.5U
+        // 90m at 0U/h - 2U/h -> -3U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(-1.5, 0.01);
     });
 
     it('should add zero temp when suspended', function() {
@@ -378,5 +406,13 @@ describe('Calculate Temp Treatments', function() {
         tempBasals[0].duration.should.equal(15);
         tempBasals[0].timestamp.should.equal(timestamp30mAgo.toISOString());
         tempBasals[0].rate.should.equal(2);
+
+        // 15m at 2U/h - 1U/h -> 0.25U
+        // 15m at 0U/h - 1U/h -> -0.25U
+        // 60m at 0U/h - 1U/h -> -1
+        // Total: -1U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(-1.0, 0.01);
     });
 });
