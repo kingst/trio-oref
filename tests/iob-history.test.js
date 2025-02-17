@@ -60,10 +60,10 @@ describe('Calculate Temp Treatments', function() {
         tempBasals[2].rate.should.equal(0);
         tempBasals[2].duration.should.equal(0);
 
-        // Check TempBolus entries
+        // 30m at 2 U/h - 1U/h -> 0.5U
         const tempBoluses = treatments.filter(t => t.insulin !== undefined);
         const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
-        totalInsulin.should.be.approximately(0.5, 0.01); // (2 U/hr - 1 U/hr) * 0.5 hr = 0.5U
+        totalInsulin.should.be.approximately(0.5, 0.01);
     });
 
     it('should handle overlapping temp basals', function() {
@@ -360,6 +360,7 @@ describe('Calculate Temp Treatments', function() {
         // 30m at 3U/h - 1U/h -> 1U
         // 30m at 3U/h - 2U/h -> 0.5U
         // 90m at 0U/h - 2U/h -> -3U
+        // Total: -1.5U
         const tempBoluses = treatments.filter(t => t.insulin !== undefined);
         const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
         totalInsulin.should.be.approximately(-1.5, 0.01);
