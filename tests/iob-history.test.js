@@ -416,4 +416,103 @@ describe('Calculate Temp Treatments', function() {
         const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
         totalInsulin.should.be.approximately(-1.0, 0.01);
     });
+
+
+    /*
+    it('should calculate history using a real pump history', function() {
+
+        var basalprofile = [{
+            'i': 0,
+            'start': '00:00:00',
+            'rate': 0.5,
+            'minutes': 0
+        }];
+
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, 'pump_history.json');
+        const jsonString = fs.readFileSync(filePath, 'utf8');
+        const history = JSON.parse(jsonString);
+
+        var now = new Date('2025-02-18T23:23:31.036Z'),
+            timestamp = new Date(now).toISOString(),
+            inputs = {
+                clock: timestamp,
+                history: history,
+                profile: {
+                    dia: 10,
+                    basalprofile: basalprofile,
+                    current_basal: 1,
+                    max_daily_basal: 1,
+                    curve: 'ultra-rapid'
+                }
+
+            };
+
+        var historyResult = calcTempTreatments(inputs);
+        console.log(JSON.stringify(historyResult, null, 2));
+	});
+
+    */
+    it('should calculate history using a real pump history', function() {
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, 'js_iob_input_error.json');
+        const jsonString = fs.readFileSync(filePath, 'utf8');
+        const inputs = JSON.parse(jsonString);
+	
+        var historyResult = calcTempTreatments(inputs);
+        const outputPath = path.join(__dirname, 'treatments.json');
+        fs.writeFileSync(outputPath, JSON.stringify(historyResult, null, 2));
+    });
+
+    it('should split at basal rate change even with duration > 30', function() {
+        // Basal profile that changes from 1.0 to 2.0 at 00:15
+        const basalprofile = [{
+            'start': '00:00:00',
+            'rate': 1,
+            'minutes': 0
+        }, {
+            'start': '00:15:00',  // Basal rate change at 15 minutes
+            'rate': 2,
+            'minutes': 15
+        }];
+    
+        // Start a 45-minute temp basal at 00:00
+        const startingPoint = moment('2016-06-13 00:00:00.000').toDate();
+        const endingPoint = moment('2016-06-13 00:45:00.000').toDate();
+    
+        const inputs = {
+            clock: endingPoint.toISOString(),
+            history: [{
+                _type: 'TempBasal',
+                rate: 3,  // 3.0 U/hr temp basal
+                date: startingPoint.getTime(),
+                timestamp: startingPoint.toISOString()
+            }, {
+                _type: 'TempBasalDuration',
+                'duration (min)': 45,  // Longer than 30 minutes
+                date: startingPoint.getTime(),
+                timestamp: startingPoint.toISOString()
+            }].reverse(),
+            profile: {
+                current_basal: 1,
+                max_daily_basal: 2,
+                dia: 3,
+                basalprofile: basalprofile,
+                suspend_zeros_iob: false
+            }
+        };
+    
+        const treatments = calcTempTreatments(inputs);
+    
+        // Calculate expected insulin impact
+        // Should be:
+        // First 15 mins: (3 U/hr - 1 U/hr) * 0.25 hr = 0.5U
+        // Next 30 mins: (3 U/hr - 2 U/hr) * 0.5 hr = 0.5U
+        // Total should be 1.0U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(1.0, 0.01); // This will fail due to bug
+    });
 });
