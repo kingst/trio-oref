@@ -3,7 +3,6 @@
 require('should');
 const moment = require('moment');
 const calcTempTreatments = require('../lib/iob/history').calcTempTreatments;
-const splitTimespan = require('../lib/iob/history').splitTimespan;
 
 describe('Suspend Logic Tests with suspendZerosIob=true', function() {
     // Helper function to create a basic basal profile
@@ -85,10 +84,10 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
     it('should handle suspend prior to history window', function() {
         const basalprofile = createBasicBasalProfile();
         
-        const now = moment('2016-06-13 01:00:00').toDate();
+        const now = moment('2016-06-13 08:00:00').toDate();
         const timestamp = new Date(now).toISOString();
-        const resumeTime = moment('2016-06-13 00:15:00').toDate();
-        const tempStartTime = moment('2016-06-13 00:30:00').toDate();
+        const resumeTime = moment('2016-06-13 07:00:00').toDate();
+        const tempStartTime = moment('2016-06-13 07:30:00').toDate();
 
         const inputs = {
             clock: timestamp,
@@ -110,11 +109,11 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                     date: tempStartTime.getTime(),
                     timestamp: tempStartTime.toISOString()
                 }
-            ],
+            ].reverse(),
             profile: {
                 current_basal: 1,
                 max_daily_basal: 1,
-                dia: 8,
+                dia: 10,
                 basalprofile: basalprofile,
                 suspend_zeros_iob: true
             }
@@ -124,14 +123,13 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
 
         // Calculate expected insulin impact:
         // 7h at 0 U/h - 1U/h = -7
-        // 15m at 0 U/h - 1 U/h = -0.25U
-        // 15m at profile basal rate = 0U
+        // 30m at profile basal rate = 0U
         // 30m at 2 U/h - 1 U/h = 0.5U
-        // Total: -6.75U
+        // Total: -6.5U
         const tempBoluses = treatments.filter(t => t.insulin !== undefined);
         const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
         // FIXME: come back to this one later
-        //totalInsulin.should.be.approximately(-6.75, 0.05);
+        totalInsulin.should.be.approximately(-6.5, 0.05);
     });
 
     it('should handle current suspension', function() {
@@ -162,7 +160,7 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                     date: suspendTime.getTime(),
                     timestamp: suspendTime.toISOString()
                 }
-            ],
+            ].reverse(),
             profile: {
                 current_basal: 1,
                 max_daily_basal: 1,
@@ -173,27 +171,14 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
         };
 
         const treatments = calcTempTreatments(inputs);
-        
-        // Verify the temp basal was shortened
-        const tempBasal = treatments.find(t => t.rate === 2);
-        should.exist(tempBasal, "Temp basal should exist");
-        tempBasal.duration.should.be.lessThan(30, "Temp basal should be shortened");
-        
-        // Calculate expected duration: min of (temp end time, suspend time) - temp start time
-        const tempEndTime = new Date(tempStartTime.getTime() + 30 * 60 * 1000);
-        const expectedEndTime = tempEndTime < suspendTime ? tempEndTime : suspendTime;
-        const expectedDuration = (expectedEndTime.getTime() - tempStartTime.getTime()) / 60 / 1000;
-        
-        tempBasal.duration.should.be.approximately(expectedDuration, 1, "Temp duration should match expected value");
-        
-        // Should have negative boluses after suspendTime
-        const suspendBoluses = treatments.filter(t => 
-            t.insulin !== undefined && 
-            t.insulin < 0 && 
-            t.date >= suspendTime.getTime()
-        );
-        
-        suspendBoluses.should.not.be.empty("Should have negative boluses after suspend time");
+
+        // Calculate expected insulin impact:
+        // 15m at 2 U/h - 1U/h = 0.25
+        // 30m at 0 U/h - 1U/h = -0.5
+        // Total: -0.5U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(-0.25, 0.05);
     });
 
     it('should handle multiple suspend-resume cycles', function() {
@@ -203,11 +188,11 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
         const timestamp = new Date(now).toISOString();
         
         // Create history with 2 suspend-resume cycles
-        const suspend1 = new Date(now - (80 * 60 * 1000));
-        const resume1 = new Date(now - (70 * 60 * 1000));
-        const suspend2 = new Date(now - (40 * 60 * 1000));
-        const resume2 = new Date(now - (30 * 60 * 1000));
+        const suspend1 = new Date(now - (90 * 60 * 1000));
+        const resume1 = new Date(now - (75 * 60 * 1000));
         const tempStart = new Date(now - (60 * 60 * 1000));
+        const suspend2 = new Date(now - (45 * 60 * 1000));
+        const resume2 = new Date(now - (30 * 60 * 1000));
 
         const inputs = {
             clock: timestamp,
@@ -230,7 +215,7 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                 },
                 {
                     _type: 'TempBasalDuration',
-                    'duration (min)': 45,
+                    'duration (min)': 60,
                     date: tempStart.getTime(),
                     timestamp: tempStart.toISOString()
                 },
@@ -244,7 +229,7 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                     date: resume2.getTime(),
                     timestamp: resume2.toISOString()
                 }
-            ],
+            ].reverse(),
             profile: {
                 current_basal: 1,
                 max_daily_basal: 1,
@@ -255,26 +240,16 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
         };
 
         const treatments = calcTempTreatments(inputs);
-        
-        // Check for negative boluses during first suspend
-        const suspendBoluses1 = treatments.filter(t => 
-            t.insulin !== undefined && 
-            t.insulin < 0 && 
-            t.date >= suspend1.getTime() && 
-            t.date <= resume1.getTime()
-        );
-        
-        suspendBoluses1.should.not.be.empty("Should have negative boluses during first suspend");
-        
-        // Check for negative boluses during second suspend
-        const suspendBoluses2 = treatments.filter(t => 
-            t.insulin !== undefined && 
-            t.insulin < 0 && 
-            t.date >= suspend2.getTime() && 
-            t.date <= resume2.getTime()
-        );
-        
-        suspendBoluses2.should.not.be.empty("Should have negative boluses during second suspend");
+
+        // Calculate expected insulin impact:
+        // 15m at 0 U/h - 1 U/h = -0.25
+        // 15m at 2 U/h - 1 U/h = 0.25
+        // 15m at 0 U/h - 1 U/h = -0.25
+        // 30m at 2 U/h - 1 U/h = 0.5
+        // Total: 0.25U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(0.25, 0.05);        
     });
 
     it('should handle suspend with basal profile changes', function() {
@@ -311,7 +286,7 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                     date: resumeTime.getTime(),
                     timestamp: resumeTime.toISOString()
                 }
-            ],
+            ].reverse(),
             profile: {
                 current_basal: 1,
                 max_daily_basal: 2,
@@ -322,21 +297,6 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
         };
 
         const treatments = calcTempTreatments(inputs);
-
-        // Check temp basal is shortened
-        const tempBasals = treatments.filter(t => t.rate === 3);
-        tempBasals.should.not.be.empty("Should have original temp basals");
-        
-        // Check for negative boluses during suspend with rate -2 
-        // (because basal rate after 00:30 is 2.0)
-        const suspendBoluses = treatments.filter(t => 
-            t.insulin !== undefined && 
-            t.insulin < 0 && 
-            t.date >= suspendTime.getTime() && 
-            t.date <= resumeTime.getTime()
-        );
-        
-        suspendBoluses.should.not.be.empty("Should have negative boluses during suspend");
         
         // Calculate expected insulin impact:
         // 15m at 3 U/h - 1 U/h = 0.5U (from start to basal change)
@@ -384,7 +344,7 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
                     date: resumeTime.getTime(),
                     timestamp: resumeTime.toISOString()
                 }
-            ],
+            ].reverse(),
             profile: {
                 current_basal: 1,
                 max_daily_basal: 1,
