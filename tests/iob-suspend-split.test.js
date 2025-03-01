@@ -2,18 +2,9 @@
 
 require('should');
 const moment = require('moment');
-const calcTempTreatments = require('../lib/iob/history');
+const calcTempTreatments = require('../lib/iob/history').calcTempTreatments;
 
-describe('Suspend Logic Tests with suspendZerosIob=true', function() {
-    // Helper function to create a basic basal profile
-    function createBasicBasalProfile() {
-        return [{
-            'start': '00:00:00',
-            'rate': 1,
-            'minutes': 0
-        }];
-    }
-
+describe('Suspend logic with bug suspendZerosIob=true', function() {
     // Helper function to create a multi-rate basal profile
     function createMultiRateBasalProfile() {
         return [{

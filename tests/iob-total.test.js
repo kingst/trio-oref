@@ -197,6 +197,6 @@ describe('Calculate Total IOB', function() {
         const iobInputs = JSON.parse(jsonString2);
 
 	const result = iobTotal(createOpts(history, iobInputs.profile), new Date(iobInputs.clock));
-	console.log(result);
+	//console.log(result);
     });
 });
