@@ -1666,6 +1666,5 @@ describe('IOB', function() {
             };
 
         var iobResult = iob(inputs);
-        console.log(JSON.stringify(iobResult, null, 2));
     });
 });
