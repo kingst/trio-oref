@@ -417,44 +417,6 @@ describe('Calculate Temp Treatments', function() {
         totalInsulin.should.be.approximately(-1.0, 0.01);
     });
 
-
-    /*
-    it('should calculate history using a real pump history', function() {
-
-        var basalprofile = [{
-            'i': 0,
-            'start': '00:00:00',
-            'rate': 0.5,
-            'minutes': 0
-        }];
-
-        const fs = require('fs');
-        const path = require('path');
-        const filePath = path.join(__dirname, 'pump_history.json');
-        const jsonString = fs.readFileSync(filePath, 'utf8');
-        const history = JSON.parse(jsonString);
-
-        var now = new Date('2025-02-18T23:23:31.036Z'),
-            timestamp = new Date(now).toISOString(),
-            inputs = {
-                clock: timestamp,
-                history: history,
-                profile: {
-                    dia: 10,
-                    basalprofile: basalprofile,
-                    current_basal: 1,
-                    max_daily_basal: 1,
-                    curve: 'ultra-rapid'
-                }
-
-            };
-
-        var historyResult = calcTempTreatments(inputs);
-        console.log(JSON.stringify(historyResult, null, 2));
-	});
-
-    */
-
     it('should split at basal rate change even with duration > 30', function() {
         // Basal profile that changes from 1.0 to 2.0 at 00:15
         const basalprofile = [{
