@@ -454,17 +454,6 @@ describe('Calculate Temp Treatments', function() {
 	});
 
     */
-    it('should calculate history using a real pump history', function() {
-        const fs = require('fs');
-        const path = require('path');
-        const filePath = path.join(__dirname, 'js_iob_input_error.json');
-        const jsonString = fs.readFileSync(filePath, 'utf8');
-        const inputs = JSON.parse(jsonString);
-	
-        var historyResult = calcTempTreatments(inputs);
-        const outputPath = path.join(__dirname, 'treatments.json');
-        fs.writeFileSync(outputPath, JSON.stringify(historyResult, null, 2));
-    });
 
     it('should split at basal rate change even with duration > 30', function() {
         // Basal profile that changes from 1.0 to 2.0 at 00:15
