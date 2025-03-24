@@ -402,7 +402,8 @@ describe('Calculate Temp Treatments', function() {
 
         // Test with 60 min zero temp duration
         const treatments = calcTempTreatments(inputs, 60);
-
+        //console.log(treatments);
+	
         const tempBasals = treatments.filter(t => t.rate !== undefined);
         tempBasals[0].duration.should.equal(15);
         tempBasals[0].timestamp.should.equal(timestamp30mAgo.toISOString());
@@ -456,7 +457,7 @@ describe('Calculate Temp Treatments', function() {
         };
     
         const treatments = calcTempTreatments(inputs);
-        console.log(treatments);
+        //console.log(treatments);
 
         // Calculate expected insulin impact
         // Should be:
