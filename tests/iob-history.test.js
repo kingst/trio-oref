@@ -481,8 +481,8 @@ describe('Calculate Temp Treatments', function() {
             inputs = {
                 clock: timestamp,
                 history: iobInputs.history,
-                profile: iobInputs.profile
-
+                profile: iobInputs.profile,
+                autosens: iobInputs.autosens
             };
 
 	var treatments = calcTempTreatments(inputs);
