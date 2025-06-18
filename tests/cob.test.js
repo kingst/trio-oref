@@ -152,13 +152,13 @@ describe('determine-basal/cob', function() {
     });
 
     it('should respect maxMealAbsorptionTime', function() {
-        const mealTime = moment('2016-06-19 12:00:00').valueOf();
-        const ciTime = moment('2016-06-19 13:00:00').valueOf();
+        const mealTime = moment('2016-06-19 12:00:00-04:00').valueOf();
+        const ciTime = moment('2016-06-19 13:00:00-04:00').valueOf();
         
         // Create glucose data spanning longer than maxMealAbsorptionTime
         const glucoseValues = [];
         for (let i = 0; i < 100; i++) { // 100 * 5 minutes = ~8 hours
-            glucoseValues.push(100 + Math.sin(i * 0.1) * 20); // Sinusoidal pattern
+            glucoseValues.push(Math.trunc(100 + Math.sin(i * 0.1) * 20)); // Sinusoidal pattern
         }
         const glucose_data = createGlucoseData(mealTime - 2 * 60 * 60 * 1000, glucoseValues); // Start 2 hours before meal
         
@@ -208,4 +208,7 @@ describe('determine-basal/cob', function() {
         const result = detectCarbAbsorption(inputs);
         result.carbsAbsorbed.should.equal(3.75);
     });
+
+    
+    
 });
