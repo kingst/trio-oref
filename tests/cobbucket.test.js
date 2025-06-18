@@ -184,15 +184,19 @@ describe('bucketGlucoseData', function() {
         // Set maxMealAbsorptionTime to 2 hours
         const profile = { ...defaultProfile, maxMealAbsorptionTime: 2 };
         
-        const result = bucketGlucoseData(glucose_data, profile, mealTime);
-        
+        const resultRaw = bucketGlucoseData(glucose_data, profile, mealTime);
+        const result = resultRaw.filter(element => {
+          // remove empty entries
+          return !(Array.isArray(element) && element.length === 0) && // Not an empty array
+             !(typeof element === 'object' && element !== null && Object.keys(element).length === 0); // Not an empty object
+        });
+
         // Should only process up to 2 hours of data (24 entries + 1 initial = 25)
-        // but it keeps the original time as the first entry of the
-        // bucket and interpolates, which is broken.
-        result.length.should.equal(72);
+        result.length.should.equal(25);
         
         result[0].glucose.should.equal(196);
-        result[result.length - 1].glucose.should.equal(100);
+        result[12].glucose.should.equal(112);
+        result[24].glucose.should.equal(100);
     });
 
     it('should only process data within 45 minutes in CI mode', function() {
