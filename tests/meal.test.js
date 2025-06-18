@@ -190,6 +190,7 @@ describe('meal/total', function() {
         result.carbs.should.equal(20);
         result.should.have.property('nsCarbs');
         result.nsCarbs.should.equal(20);
+        result.mealCOB.should.equal(13.25);
     });
     
     it('should ignore treatments outside the meal window', function() {
