@@ -1,6 +1,7 @@
 'use strict';
 
 var should = require('should');
+const moment = require('moment');
 var tz = require('moment-timezone');
 
 describe('meal/history', function() {
@@ -103,6 +104,85 @@ describe('meal/history', function() {
 describe('meal/total', function() {
     var recentCarbs = require('../lib/meal/total');
     
+    it('should calculate carb absorption correctly', function() {
+        const baseTime = moment('2016-06-19 12:00:00').toDate();
+        const mealTime = moment('2016-06-19 12:00:00').toDate();
+        const testTime = moment('2016-06-19 13:00:00').toDate(); // 1 hour after meal
+        
+        // Create glucose data showing rise after carbs
+        var glucoseData = [];
+        
+        // Create a series of glucose readings every 5 minutes
+        for (var i = 0; i < 13; i++) {
+            // Create pattern that shows carb impact:
+            // Initial flat, then rise, then plateau
+            var bg = 100;
+            if (i > 2 && i < 8) {
+                bg = 100 + ((i-2) * 10); // 100, 110, 120, 130, 140
+            } else if (i >= 8) {
+                bg = 150; // plateau
+            }
+            
+            var timestamp = baseTime.getTime() + (i * 5 * 60 * 1000);
+            var dateStr = new Date(timestamp).toISOString();
+            
+            glucoseData.push({
+                type: 'svg',
+                svg: bg,
+                glucose: bg,
+                date: timestamp,
+                dateString: dateStr
+            });
+        }
+        glucoseData.reverse();
+
+        // Create insulin data - bolus at same time as carbs
+        var pumpHistory = [
+            {
+                "_type": "Bolus",
+                "timestamp": moment(mealTime).toISOString(),
+                "amount": 3.0,
+                "duration": 0
+            }
+        ];
+        
+        // Carb treatment 
+        var treatments = [
+            { timestamp: moment(mealTime).toISOString(), carbs: 30, nsCarbs: 30 },
+            { timestamp: moment(mealTime).toISOString(), bolus: 3 }
+        ];
+        
+        var profile = {
+            dia: 4,  // 4 hour insulin duration
+            maxMealAbsorptionTime: 6,
+            maxCOB: 120,
+            min_5m_carbimpact: 3,
+            carb_ratio: 10,  // 10g per unit
+            isfProfile: {
+                sensitivities: [{ offset: 0, sensitivity: 40 }]  // 40 mg/dL per unit
+            },
+            current_basal: 1.0,
+            carbAbsorptionRate: 30  // 30g per hour
+        };
+
+        var opts = {
+            treatments: treatments,
+            profile: profile,
+            pumphistory: pumpHistory,
+            glucose: glucoseData,
+            basalprofile: [{ minutes: 0, rate: 1.0 }]
+        };
+        
+        // After 1 hour, we should see partial carb absorption
+        var result = recentCarbs(opts, testTime);
+
+        // Check that mealCOB exists and is correctly calculated
+        result.should.have.property('mealCOB');
+        result.should.have.property('currentDeviation');
+        result.currentDeviation.should.equal(3);
+        result.mealCOB.should.equal(12);
+    });
+
     it('should return empty object when no treatments provided', function() {
         var baseTime = new Date("2016-06-19T13:00:00-04:00").getTime();
         var glucoseData = [
