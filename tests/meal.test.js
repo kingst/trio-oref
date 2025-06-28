@@ -234,12 +234,12 @@ describe('meal/total', function() {
                 dateString: "2016-06-19T12:00:00-04:00"
             },
             { 
-                glucose: 105, 
+                glucose: 150, 
                 date: baseTime + 30 * 60 * 1000,
                 dateString: "2016-06-19T12:30:00-04:00"
             },
             { 
-                glucose: 110, 
+                glucose: 200, 
                 date: baseTime + 60 * 60 * 1000,
                 dateString: "2016-06-19T13:00:00-04:00"
             }
@@ -251,7 +251,7 @@ describe('meal/total', function() {
                 maxMealAbsorptionTime: 6,
                 maxCOB: 120,
                 timezone: "America/New_York",
-                min_5m_carbimpact: 3,
+                min_5m_carbimpact: 5,
                 carb_ratio: 10,
                 isfProfile: {
                     sensitivities: [{ offset: 0, sensitivity: 40 }]
@@ -270,7 +270,7 @@ describe('meal/total', function() {
         result.carbs.should.equal(20);
         result.should.have.property('nsCarbs');
         result.nsCarbs.should.equal(20);
-        result.mealCOB.should.equal(13.25);
+        result.mealCOB.should.equal(18);
     });
     
     it('should ignore treatments outside the meal window', function() {
