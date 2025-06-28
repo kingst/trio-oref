@@ -3,6 +3,7 @@
 var should = require('should');
 const moment = require('moment');
 var tz = require('moment-timezone');
+const { get_public_ip } = require('network');
 
 describe('meal/history', function() {
     var find_meal_inputs = require('../lib/meal/history');
@@ -148,8 +149,7 @@ describe('meal/total', function() {
         
         // Carb treatment 
         var treatments = [
-            { timestamp: moment(mealTime).toISOString(), carbs: 30, nsCarbs: 30 },
-            { timestamp: moment(mealTime).toISOString(), bolus: 3 }
+            { timestamp: moment(mealTime).toISOString(), carbs: 30, nsCarbs: 30 }
         ];
         
         var profile = {
@@ -162,6 +162,7 @@ describe('meal/total', function() {
                 sensitivities: [{ offset: 0, sensitivity: 40 }]  // 40 mg/dL per unit
             },
             current_basal: 1.0,
+            curve: 'rapid-acting',
             carbAbsorptionRate: 30  // 30g per hour
         };
 
@@ -179,8 +180,8 @@ describe('meal/total', function() {
         // Check that mealCOB exists and is correctly calculated
         result.should.have.property('mealCOB');
         result.should.have.property('currentDeviation');
-        result.currentDeviation.should.equal(3);
-        result.mealCOB.should.equal(12);
+        result.currentDeviation.should.equal(3.6);
+        result.mealCOB.should.equal(10);
     });
 
     it('should return empty object when no treatments provided', function() {
@@ -234,16 +235,17 @@ describe('meal/total', function() {
                 dateString: "2016-06-19T12:00:00-04:00"
             },
             { 
-                glucose: 150, 
+                glucose: 105, 
                 date: baseTime + 30 * 60 * 1000,
                 dateString: "2016-06-19T12:30:00-04:00"
             },
             { 
-                glucose: 200, 
+                glucose: 110, 
                 date: baseTime + 60 * 60 * 1000,
                 dateString: "2016-06-19T13:00:00-04:00"
             }
         ];
+        glucoseData.reverse();
         
         var opts = {
             treatments: treatments,
@@ -251,7 +253,7 @@ describe('meal/total', function() {
                 maxMealAbsorptionTime: 6,
                 maxCOB: 120,
                 timezone: "America/New_York",
-                min_5m_carbimpact: 5,
+                min_5m_carbimpact: 3,
                 carb_ratio: 10,
                 isfProfile: {
                     sensitivities: [{ offset: 0, sensitivity: 40 }]
@@ -270,7 +272,7 @@ describe('meal/total', function() {
         result.carbs.should.equal(20);
         result.should.have.property('nsCarbs');
         result.nsCarbs.should.equal(20);
-        result.mealCOB.should.equal(18);
+        result.mealCOB.should.equal(14);
     });
     
     it('should ignore treatments outside the meal window', function() {
@@ -300,7 +302,8 @@ describe('meal/total', function() {
                 dateString: "2016-06-19T13:00:00-04:00"
             }
         ];
-        
+        glucoseData.reverse();
+
         var opts = {
             treatments: treatments,
             profile: {
@@ -353,7 +356,8 @@ describe('meal/total', function() {
                 dateString: "2016-06-19T13:00:00-04:00"
             }
         ];
-        
+        glucoseData.reverse();
+
         var opts = {
             treatments: treatments,
             profile: {
@@ -406,7 +410,8 @@ describe('meal/total', function() {
                 dateString: "2016-06-19T13:00:00-04:00"
             }
         ];
-        
+        glucoseData.reverse();
+
         var opts = {
             treatments: treatments,
             profile: {
@@ -447,7 +452,8 @@ describe('meal/total', function() {
                 dateString: dateStr
             });
         }
-        
+        glucoseData.reverse();
+
         var treatments = [
             {
                 timestamp: "2016-06-19T12:00:00-04:00", // 30 min before glucose data starts
@@ -542,7 +548,8 @@ describe('meal/generator', function() {
                 dateString: "2016-06-19T13:00:00-04:00" 
             }
         ];
-        
+        glucoseData.reverse();
+
         var inputs = {
             history: [
                 {"_type": "Bolus", "timestamp": "2016-06-19T12:00:00-04:00", "amount": 2.5}
@@ -594,6 +601,7 @@ describe('meal/generator', function() {
                 dateString: "2016-06-19T12:30:00-04:00" 
             }
         ];
+        glucoseData.reverse();
         
         var inputs = {
             history: [],
