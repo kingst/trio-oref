@@ -1635,23 +1635,40 @@ describe('IOB', function() {
         after4h.iob.should.equal(0);
     });
 
-    it('should calculate IOB using a real pump history', function() {
-        const fs = require('fs');
-        const path = require('path');
-        const filePath = path.join(__dirname, 'js_iob_input_error.json');
-        const jsonString = fs.readFileSync(filePath, 'utf8');
-        const iobInputs = JSON.parse(jsonString);
+    it('should calculate IOB with long suspends', function() {
 
-        var now = new Date(iobInputs.clock),
+        var basalprofile = [{
+            'i': 0,
+            'start': '00:00:00',
+            'rate': 1,
+            'minutes': 0
+        }];
+
+        var now = new Date('2024-12-25T20:00:00'),
             timestamp = new Date(now).toISOString(),
             inputs = {
                 clock: timestamp,
-                history: iobInputs.history,
-                profile: iobInputs.profile
+                history: [
+                    {
+                        _type: 'PumpSuspend',
+                        timestamp: new Date('2024-12-25T05:00:00').toISOString()
+                    },
+                    {
+                        _type: 'PumpResume',
+                        timestamp: new Date('2024-12-25T19:00:00').toISOString()
+                    }
+                ],
+                profile: {
+                    dia: 10,
+                    basalprofile: basalprofile,
+                    current_basal: 1,
+                    max_daily_basal: 1,
+                    suspend_zeros_iob: true
+                }
 
             };
 
-        var iobResult = iob(inputs);
-	//console.log(iobResult);
+        var iobResult = iob(inputs)[0];
+        console.log(iobResult);
     });
 });
