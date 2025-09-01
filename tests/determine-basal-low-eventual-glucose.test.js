@@ -17,7 +17,7 @@ function convert_bg(value, profile)
     }
 }
 
-// User-specified round function for added precision
+// Round function from testing JS for added precision
 function round(value, digits) {
     if (! digits) { digits = 0; }
     var scale = Math.pow(10, digits);
