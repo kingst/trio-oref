@@ -72,6 +72,7 @@ describe('DosingEngine.eventualOrForecastGlucoseLessThanMax', function() {
     };
     let rT;
     let setTempBasalSpy;
+    const originalSetTempBasal = tempBasalFunctions.setTempBasal;
 
     beforeEach(() => {
         rT = { reason: '' };
@@ -85,6 +86,10 @@ describe('DosingEngine.eventualOrForecastGlucoseLessThanMax', function() {
             setTempBasalSpy.args = args;
             return setTempBasalSpy.returnValue;
         };
+    });
+
+    afterEach(() => {
+        tempBasalFunctions.setTempBasal = originalSetTempBasal;
     });
 
     it('should return null if eventualBG and minPredBG are not less than max_bg', () => {

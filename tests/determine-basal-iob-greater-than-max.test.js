@@ -62,6 +62,7 @@ describe('DosingEngine.iobGreaterThanMax', function() {
     };
     let rT;
     let setTempBasalSpy;
+    const originalSetTempBasal = tempBasalFunctions.setTempBasal;
 
     beforeEach(() => {
         rT = { reason: '' };
@@ -75,6 +76,10 @@ describe('DosingEngine.iobGreaterThanMax', function() {
             setTempBasalSpy.args = args;
             return setTempBasalSpy.returnValue;
         };
+    });
+
+    afterEach(() => {
+        tempBasalFunctions.setTempBasal = originalSetTempBasal;
     });
 
     it('should return null if iob is not greater than max_iob', () => {

@@ -80,6 +80,7 @@ describe('DosingEngine.glucoseFallingFasterThanExpected', function() {
     };
     let rT;
     let setTempBasalSpy;
+    const originalSetTempBasal = tempBasalFunctions.setTempBasal;
 
     beforeEach(() => {
         rT = { reason: '' };
@@ -93,6 +94,10 @@ describe('DosingEngine.glucoseFallingFasterThanExpected', function() {
             setTempBasalSpy.args = args;
             return setTempBasalSpy.returnValue;
         };
+    });
+
+    afterEach(() => {
+        tempBasalFunctions.setTempBasal = originalSetTempBasal;
     });
 
     it('should return null if minDelta is not less than expectedDelta', () => {
