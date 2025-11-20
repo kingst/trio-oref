@@ -39,9 +39,9 @@ describe('determine-basal-early-exit', function() {
         inputs.glucose_status.glucose = 38;
         inputs.currenttemp = {"duration":30,"rate":1.5,"temp":"absolute"};
         const result = determine_basal(inputs.glucose_status, inputs.currenttemp, inputs.iob_data, inputs.profile, inputs.autosens_data, inputs.meal_data, tempBasalFunctions, inputs.microBolusAllowed, inputs.reservoir_data, inputs.currentTime, inputs.pumphistory, inputs.preferences, inputs.basalprofile, inputs.trio_custom_variables, inputs.middleWare);
-        result.should.have.property('duration', 0);
-        result.should.have.property('rate', 0);
-        result.reason.should.containEql('Canceling high temp basal');
+        result.should.have.property('duration', 30);
+        result.should.have.property('rate', 0.9);
+        result.reason.should.containEql('Replacing high temp basal');
     });
 
     it('should shorten long zero temp if BG data is too old', function() {
