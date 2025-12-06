@@ -20,7 +20,7 @@ function determineSMBDelivery(
     carbRatio,
     basal,
     rT,
-    overrideFactor
+    trioCustomOrefVariables
 ) {
     // Reference line 1530
     if (microBolusAllowed && enableSMB && bg > threshold) {
@@ -33,17 +33,34 @@ function determineSMBDelivery(
             return Math.round(value * scale) / scale;
         }
 
+        var overrideFactor = 1.0;
+        if (trioCustomOrefVariables && typeof trioCustomOrefVariables.overridePercentage !== 'undefined') {
+            overrideFactor = trioCustomOrefVariables.overridePercentage / 100.0;
+        } else if (typeof trioCustomOrefVariables === 'number') {
+             // fallback for legacy calls in tests passing overrideFactor directly
+             overrideFactor = trioCustomOrefVariables;
+             trioCustomOrefVariables = null;
+        }
+
         var smbMinutesSetting =  30;
         if (typeof profile.maxSMBBasalMinutes !== 'undefined') {
             smbMinutesSetting = profile.maxSMBBasalMinutes;
         }
+        
         var uamMinutesSetting = 30;
         if (typeof profile.maxUAMSMBBasalMinutes !== 'undefined') {
             uamMinutesSetting = profile.maxUAMSMBBasalMinutes;
         }
 
-        // Simulating the logic where smbMinutes can be overridden by custom variables if needed, 
-        // but for unit testing the extraction we stick to profile usage mainly or pass modified profile.
+        // Logic from DosingEngine.swift: determineMaxBolus
+        if (trioCustomOrefVariables && trioCustomOrefVariables.useOverride && trioCustomOrefVariables.advancedSettings) {
+            if (typeof trioCustomOrefVariables.smbMinutes !== 'undefined') {
+                smbMinutesSetting = trioCustomOrefVariables.smbMinutes;
+            }
+            if (typeof trioCustomOrefVariables.uamMinutes !== 'undefined') {
+                uamMinutesSetting = trioCustomOrefVariables.uamMinutes;
+            }
+        }
 
         var mealInsulinReq = round( meal_data.mealCOB / carbRatio ,3);
         var maxBolus = 0;
@@ -197,6 +214,76 @@ describe('Aggressive Dosing: determineSMBDelivery', function() {
         // smb = min(3.0 * 0.5, 1.0) = 1.0 (uses UAM limit)
         
         const result = determineSMBDelivery(3.0, true, true, 120, 100, profile, meal_data, iob_data, systemTime, 100, 100, 100, 50, 10, 1.0, rT, 1.0);
+        
+        should(result).be.null();
+        rT.units.should.equal(1.0);
+    });
+
+    it('should override smbMinutes and uamMinutes when useOverride and advancedSettings are true', () => {
+        // profile: smb 30 (0.5U), uam 30 (0.5U)
+        // override: smb 60 (1.0U), uam 60 (1.0U)
+        
+        const customVars = {
+            overridePercentage: 100,
+            useOverride: true,
+            advancedSettings: true,
+            smbMinutes: 60,
+            uamMinutes: 60
+        };
+
+        // Case 1: Regular SMB (IOB <= mealInsulinReq)
+        // insulinReq = 3.0
+        // maxBolus should be 1.0 (60 mins) instead of 0.5 (30 mins)
+        // smb = min(1.5, 1.0) = 1.0
+
+        let result = determineSMBDelivery(3.0, true, true, 120, 100, profile, meal_data, iob_data, systemTime, 100, 100, 100, 50, 10, 1.0, rT, customVars);
+        should(result).be.null();
+        rT.units.should.equal(1.0);
+
+        // Case 2: UAM SMB (IOB > mealInsulinReq)
+        meal_data.mealCOB = 10; // req = 1.0
+        iob_data.iob = 1.5;
+        rT = { reason: '' };
+
+        // Reset profile to be sure
+        profile.maxUAMSMBBasalMinutes = 30;
+
+        // maxBolus should be 1.0 (60 mins override)
+        result = determineSMBDelivery(3.0, true, true, 120, 100, profile, meal_data, iob_data, systemTime, 100, 100, 100, 50, 10, 1.0, rT, customVars);
+        should(result).be.null();
+        rT.units.should.equal(1.0);
+    });
+
+    it('should not override smbMinutes and uamMinutes when advancedSettings is false', () => {
+        const customVars = {
+            overridePercentage: 100,
+            useOverride: true,
+            advancedSettings: false,
+            smbMinutes: 60,
+            uamMinutes: 60
+        };
+
+        // insulinReq = 3.0
+        // maxBolus should be 0.5 (30 mins from profile) ignoring override 60
+        // smb = min(1.5, 0.5) = 0.5
+
+        const result = determineSMBDelivery(3.0, true, true, 120, 100, profile, meal_data, iob_data, systemTime, 100, 100, 100, 50, 10, 1.0, rT, customVars);
+        should(result).be.null();
+        rT.units.should.equal(0.5);
+    });
+    
+    it('should use overridePercentage from custom vars if provided', () => {
+        const customVars = {
+            overridePercentage: 200, // 200%
+            useOverride: true,
+            advancedSettings: false
+        };
+
+        // maxBolus = 1.0 * 2.0 * 30/60 = 1.0
+        // insulinReq = 3.0
+        // smb = min(3.0 * 0.5, 1.0) = 1.0
+
+        const result = determineSMBDelivery(3.0, true, true, 120, 100, profile, meal_data, iob_data, systemTime, 100, 100, 100, 50, 10, 1.0, rT, customVars);
         
         should(result).be.null();
         rT.units.should.equal(1.0);
