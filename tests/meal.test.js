@@ -187,13 +187,13 @@ describe('meal/total', function() {
     it('should return empty object when no treatments provided', function() {
         var baseTime = new Date("2016-06-19T13:00:00-04:00").getTime();
         var glucoseData = [
-            { 
-                glucose: 100, 
+            {
+                glucose: 100,
                 date: baseTime,
                 dateString: "2016-06-19T13:00:00-04:00"
             }
         ];
-        
+
         var opts = {
             treatments: null,
             profile: {
@@ -211,11 +211,65 @@ describe('meal/total', function() {
             glucose: glucoseData,
             basalprofile: [{ minutes: 0, rate: 1.0 }]
         };
-        
+
         var time = new Date(tz("2016-06-19T13:00:00-04:00"));
         var result = recentCarbs(opts, time);
-        
+
         Object.keys(result).length.should.equal(0);
+    });
+
+    it('should return result with zero carbs when treatments is empty array', function() {
+        var baseTime = new Date("2016-06-19T13:00:00-04:00").getTime();
+        var glucoseData = [
+            {
+                glucose: 100,
+                date: baseTime,
+                dateString: "2016-06-19T13:00:00-04:00"
+            }
+        ];
+
+        var opts = {
+            treatments: [],
+            profile: {
+                maxMealAbsorptionTime: 6,
+                maxCOB: 120,
+                timezone: "America/New_York",
+                min_5m_carbimpact: 3,
+                carb_ratio: 10,
+                isfProfile: {
+                    sensitivities: [{ offset: 0, sensitivity: 40 }]
+                },
+                current_basal: 1.0
+            },
+            pumphistory: [],
+            glucose: glucoseData,
+            basalprofile: [{ minutes: 0, rate: 1.0 }]
+        };
+
+        var time = new Date(tz("2016-06-19T13:00:00-04:00"));
+        var result = recentCarbs(opts, time);
+
+        // With empty treatments, JS still returns a full result object
+        // with zero carbs/COB and sentinel deviation values
+        result.should.have.property('carbs');
+        result.carbs.should.equal(0);
+        result.should.have.property('mealCOB');
+        result.mealCOB.should.equal(0);
+        result.should.have.property('currentDeviation');
+	// will map to null after JSON.stringify
+        isNaN(result.currentDeviation).should.equal(true);
+        result.should.have.property('maxDeviation');
+        result.maxDeviation.should.equal(0);
+        result.should.have.property('minDeviation');
+        result.minDeviation.should.equal(999);
+        result.should.have.property('slopeFromMaxDeviation');
+        result.slopeFromMaxDeviation.should.equal(0);
+        result.should.have.property('slopeFromMinDeviation');
+        result.slopeFromMinDeviation.should.equal(999);
+        result.should.have.property('allDeviations');
+        result.allDeviations.should.deepEqual([]);
+        result.should.have.property('lastCarbTime');
+        result.lastCarbTime.should.equal(0);
     });
     
     it('should calculate carbs correctly for treatments within the meal window', function() {
