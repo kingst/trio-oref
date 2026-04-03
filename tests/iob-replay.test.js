@@ -9,7 +9,7 @@ describe('IOB replay', function() {
     it('should calculate IOB using a real pump history', function() {
         const fs = require('fs');
         const path = require('path');
-        const filePath = path.join(__dirname, 'js_iob_input_error.json');
+        const filePath = process.env.IOB_INPUT || path.join(__dirname, 'js_iob_input_error.json');
         const jsonString = fs.readFileSync(filePath, 'utf8');
         const iobInputs = JSON.parse(jsonString);
 
@@ -18,8 +18,8 @@ describe('IOB replay', function() {
             inputs = {
                 clock: timestamp,
                 history: iobInputs.history,
-                profile: iobInputs.profile
-
+                profile: iobInputs.profile,
+                autosens: iobInputs.autosens
             };
 
         var iobResult = iob(inputs);
