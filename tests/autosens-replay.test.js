@@ -8,16 +8,12 @@ const { getActiveResourcesInfo } = require('process');
 
 describe('autosens', function() {
 
-    function readjson(file) {
-        const fs = require('fs');
-	const path = require('path');
-        const filePath = path.join(__dirname, "autosens_logs/" + file);
-        const jsonString = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(jsonString);
-    }
-
     it("Should replay autosens inconsistency", function() {
-        const autosensInputs = readjson("autosens_inputs.json");
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = process.env.AUTOSENS_INPUT || path.join(__dirname, 'autosens_logs/autosens_inputs.json');
+        const jsonString = fs.readFileSync(filePath, 'utf8');
+        const autosensInputs = JSON.parse(jsonString);
         const history = autosensInputs.history;
         const basal = autosensInputs.basalProfile;
         const profile = autosensInputs.profile;
