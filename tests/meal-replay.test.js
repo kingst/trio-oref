@@ -2,36 +2,26 @@
 
 var should = require('should');
 
-describe('meal-generate', function ( ) {
-    const fs = require('fs');
-    const path = require('path');
-    
-    var generate = require('../lib/meal/index');
-    const filePath = path.join(__dirname, 'meal_error_inputs.json');
-    const rawData = fs.readFileSync(filePath, 'utf8');
-    const inputs = JSON.parse(rawData);
+describe('meal replay', function () {
+    it('should calculate meal using real inputs', function () {
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = process.env.MEAL_INPUT || path.join(__dirname, 'meal_error_inputs.json');
+        const rawData = fs.readFileSync(filePath, 'utf8');
+        const inputs = JSON.parse(rawData);
 
-    const glucose = inputs.glucose;
-    const profile = inputs.profile;
-    const basalProfile = inputs.basalProfile;
-    const pumpHistory = inputs.pumpHistory;
-    const clock = inputs.clock;
-    const carbs = inputs.carbs;
+        var generate = require('../lib/meal/index');
 
-    var mealInputs = {
-        history: pumpHistory
-      , profile: profile
-      , basalprofile: basalProfile
-      , clock: clock
-      , carbs: carbs
-      , glucose: glucose
-    };
+        var mealInputs = {
+            history: inputs.pumpHistory
+          , profile: inputs.profile
+          , basalprofile: inputs.basalProfile
+          , clock: inputs.clock
+          , carbs: inputs.carbs
+          , glucose: inputs.glucose
+        };
 
-    // Invoke determine_basal with all parameters
-    const result = generate(mealInputs);
-
-    // Do something with the result
-    console.log(result);
+        const result = generate(mealInputs);
+        console.log(JSON.stringify(result));
+    });
 });
-
-
