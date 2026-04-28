@@ -469,6 +469,63 @@ describe('Calculate Temp Treatments', function() {
         totalInsulin.should.be.approximately(1.0, 0.01); // This will fail due to bug
     });
 
+    it('should split when an earlier piece still needs splitting after the last piece is done', function() {
+        // Triggers a splitTimespan loop-termination edge case: round 1 of
+        // splitTimespan splits the 48-min temp at +30 into A=(00:03, 30m) and
+        // B=(00:33, 18m). In round 2, A crosses the 00:06 basal boundary and
+        // is split into A1=(00:03, 3m) + A2=(00:06, 27m); B crosses no
+        // boundary and is not split. A2 still spans the 00:30 boundary and
+        // needs a round-3 split into A2a=(00:06, 24m) + A2b=(00:30, 3m).
+        //
+        // Inputs are chosen so each correct segment's net basal lands on an
+        // exact multiple of the 0.05 U micro-bolus, making the expected total
+        // (-1.60 U) reachable to the cent. If the splitter misses the round-3
+        // split the 27-min segment is evaluated entirely at the high (3 U/h)
+        // rate and the total comes out -1.70 U.
+        const basalprofile = [
+            { 'start': '00:00:00', 'rate': 1, 'minutes': 0  },
+            { 'start': '00:06:00', 'rate': 3, 'minutes': 6  },
+            { 'start': '00:30:00', 'rate': 1, 'minutes': 30 },
+        ];
+
+        const startingPoint = moment('2016-06-13 00:03:00.000').toDate();
+        const endingPoint   = moment('2016-06-13 01:00:00.000').toDate();
+
+        const inputs = {
+            clock: endingPoint.toISOString(),
+            history: [{
+                _type: 'TempBasal',
+                rate: 0,
+                date: startingPoint.getTime(),
+                timestamp: startingPoint.toISOString()
+            }, {
+                _type: 'TempBasalDuration',
+                'duration (min)': 48,
+                date: startingPoint.getTime(),
+                timestamp: startingPoint.toISOString()
+            }].reverse(),
+            profile: {
+                current_basal: 1,
+                max_daily_basal: 3,
+                dia: 3,
+                basalprofile: basalprofile,
+                suspend_zeros_iob: false
+            }
+        };
+
+        const treatments = calcTempTreatments(inputs);
+
+        // Expected per-segment net basal, all exact 0.05 U multiples:
+        //   00:03-00:06 ( 3m at 0-1 = -1 U/h) -> -0.05 U
+        //   00:06-00:30 (24m at 0-3 = -3 U/h) -> -1.20 U
+        //   00:30-00:33 ( 3m at 0-1 = -1 U/h) -> -0.05 U
+        //   00:33-00:51 (18m at 0-1 = -1 U/h) -> -0.30 U
+        //   total: -1.60 U
+        const tempBoluses = treatments.filter(t => t.insulin !== undefined);
+        const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
+        totalInsulin.should.be.approximately(-1.60, 0.001);
+    });
+
     it('should calculate treatments using a real pump history', function() {
         const fs = require('fs');
         const path = require('path');
