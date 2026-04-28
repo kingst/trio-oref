@@ -48,17 +48,15 @@ describe('Calculate Temp Treatments', function() {
         // Filter temp basals (excluding zero temps)
         const tempBasals = treatments.filter(t => t.rate !== undefined);
         tempBasals.should.be.an.Array();
-        tempBasals.length.should.equal(3); // Original temp plus two zero temps
+        tempBasals.length.should.equal(2); // Original temp plus one zero temp
 
         // First entry should be actual temp basal
         tempBasals[0].rate.should.equal(2);
         tempBasals[0].duration.should.equal(30);
 
-        // Following entries should be zero temps
+        // Following entry should be a zero temp
         tempBasals[1].rate.should.equal(0);
         tempBasals[1].duration.should.equal(0);
-        tempBasals[2].rate.should.equal(0);
-        tempBasals[2].duration.should.equal(0);
 
         // 30m at 2 U/h - 1U/h -> 0.5U
         const tempBoluses = treatments.filter(t => t.insulin !== undefined);

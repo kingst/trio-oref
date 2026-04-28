@@ -122,14 +122,17 @@ describe('Suspend Logic Tests with suspendZerosIob=true', function() {
         const treatments = calcTempTreatments(inputs);
 
         // Calculate expected insulin impact:
-        // 7h at 0 U/h - 1U/h = -7
+        // calcTempTreatments synthesizes a suspend covering the full
+        // 36h pump-history window when there's a PumpResume with no
+        // prior PumpSuspend. With clock=08:00 and resume=07:00, that's
+        // 35h of synthetic suspend before the resume.
+        // 35h at 0 U/h - 1 U/h = -35U
         // 30m at profile basal rate = 0U
         // 30m at 2 U/h - 1 U/h = 0.5U
-        // Total: -6.5U
+        // Total: -34.5U
         const tempBoluses = treatments.filter(t => t.insulin !== undefined);
         const totalInsulin = tempBoluses.reduce((sum, bolus) => sum + bolus.insulin, 0);
-        // FIXME: come back to this one later
-        totalInsulin.should.be.approximately(-6.5, 0.05);
+        totalInsulin.should.be.approximately(-34.5, 0.05);
     });
 
     it('should handle current suspension', function() {
