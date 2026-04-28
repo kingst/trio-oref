@@ -2,9 +2,17 @@
 
 var should = require('should');
 var _ = require('lodash');
-var isf = require('../lib/profile/isf');
+var isf;
 
 describe('ISF Profile', function() {
+    // lib/profile/isf.js keeps a module-scoped `lastResult` cache that other
+    // test files (cob, meal, autosens) can populate via isfLookup. Re-require
+    // the module to start each test with a clean cache.
+    beforeEach(function() {
+        delete require.cache[require.resolve('../lib/profile/isf')];
+        isf = require('../lib/profile/isf');
+    });
+
     var isf_data = {
         sensitivities: [
             { offset: 0, sensitivity: 100, start: '00:00:00' },
