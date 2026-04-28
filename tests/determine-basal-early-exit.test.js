@@ -73,7 +73,7 @@ describe('determine-basal-early-exit', function() {
         const inputs = getDefaultInputs();
         inputs.microBolusAllowed = true;
         inputs.currenttemp = {"duration":30,"rate":1.5,"temp":"absolute"};
-        inputs.iob_data.lastTemp = {"duration":30,"rate":1.0,"temp":"absolute", "date": new Date(inputs.currentTime.getTime() - 15 * 60 * 1000).getTime()};
+        inputs.iob_data.lastTemp = {"duration":30,"rate":1.0,"temp":"absolute", "timestamp": new Date(inputs.currentTime.getTime() - 15 * 60 * 1000).getTime()};
         const result = determine_basal(inputs.glucose_status, inputs.currenttemp, inputs.iob_data, inputs.profile, inputs.autosens_data, inputs.meal_data, tempBasalFunctions, inputs.microBolusAllowed, inputs.reservoir_data, inputs.currentTime, inputs.pumphistory, inputs.preferences, inputs.basalprofile, inputs.trio_custom_variables, inputs.middleWare);
         result.should.have.property('duration', 0);
         result.should.have.property('rate', 0);
@@ -83,7 +83,7 @@ describe('determine-basal-early-exit', function() {
     it('should cancel temp if lastTemp from pumphistory ended long ago', function() {
         const inputs = getDefaultInputs();
         inputs.currenttemp = {"duration":30,"rate":1.5,"temp":"absolute"};
-        inputs.iob_data.lastTemp = {"duration":30,"rate":1.5,"temp":"absolute", "date": new Date(inputs.currentTime.getTime() - 40 * 60 * 1000).getTime()};
+        inputs.iob_data.lastTemp = {"duration":30,"rate":1.5,"temp":"absolute", "timestamp": new Date(inputs.currentTime.getTime() - 40 * 60 * 1000).getTime()};
         const result = determine_basal(inputs.glucose_status, inputs.currenttemp, inputs.iob_data, inputs.profile, inputs.autosens_data, inputs.meal_data, tempBasalFunctions, inputs.microBolusAllowed, inputs.reservoir_data, inputs.currentTime, inputs.pumphistory, inputs.preferences, inputs.basalprofile, inputs.trio_custom_variables, inputs.middleWare);
         result.should.have.property('duration', 0);
         result.should.have.property('rate', 0);
